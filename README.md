@@ -1,34 +1,71 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/_8sc1GR8)
-### Overview
+# RPC-Based List Manipulation Server with RPyC
 
-This example illustrates RPC in Python using the RPyC library (https://rpyc.readthedocs.io/).
+Este projeto demonstra o uso da biblioteca RPyC (Remote Python Call) para construir um sistema cliente-servidor simples em Python. O servidor expõe um objeto que se comporta como uma lista, permitindo que clientes remotos manipulem seu estado através de chamadas de procedimento que se assemelham a chamadas de função locais.
 
-It consists of a server that exposes two remotely accessible procedures used to manipulate a list:
+O objetivo é ilustrar o poder e a simplicidade dos frameworks de RPC em comparação com a programação de rede de baixo nível com sockets, abstraindo toda a complexidade de serialização de dados, conexão e definição de protocolo.
 
-- value(): returns the current value of the list (its elements)
-- append(): adds a new element to the end of the list
+## Arquitetura do Sistema
 
-### Before running the example, you need to install the RPyC library:
+*   **`server.py`**: Inicia um servidor RPyC `ThreadedServer` que instancia a classe `DBList`. Cada método na classe prefixado com `exposed_` fica automaticamente disponível para ser chamado por clientes remotos. O servidor mantém o estado da lista em memória.
+*   **`client.py`**: Um script de cliente que se conecta ao servidor RPyC e executa uma série de operações de teste para demonstrar todas as funcionalidades implementadas, imprimindo os resultados de cada passo.
+*   **`constRPYC.py`**: Um arquivo de configuração simples para definir o endereço `SERVER` e a `PORT` para a comunicação.
 
-Do the following on the two machines (AWS EC2 instances) that you will use for this activity:
+## Funcionalidades Implementadas (Procedimentos Remotos)
 
-    sudo apt update
-    sudo apt install python3-rpyc
+O servidor foi aprimorado para expor um conjunto completo de operações de manipulação de lista:
 
-### Then edit the constRPYC.py file to use the IP address of the machine where you will run the server:
+| Procedimento Remoto           | Descrição                                                    |
+| ----------------------------- | -------------------------------------------------------------- |
+| `exposed_value()`             | Retorna o estado atual da lista (todos os seus elementos).      |
+| `exposed_append(data)`        | Adiciona um novo elemento ao final da lista.                   |
+| `exposed_insert(index, data)` | Insere um elemento em um índice específico na lista.            |
+| `exposed_remove(data)`        | Remove a primeira ocorrência do elemento especificado.         |
+| `exposed_search(data)`        | Verifica se um elemento existe na lista, retornando `True` ou `False`. |
+| `exposed_get_by_index(index)` | Retorna o elemento localizado em um determinado índice.           |
+| `exposed_sort()`              | Ordena os elementos da lista em ordem crescente.               |
+| `exposed_clear()`             | Remove todos os elementos da lista, deixando-a vazia.          |
 
-Also make sure it is using one of the ports left open for incoming TCP connections on the firewall (security group), such as 5678
+## Pré-requisitos
 
-### Then run the server on one machine
+Antes de executar, certifique-se de que você tem o Python 3 e a biblioteca RPyC instalada.
 
-    python3 server.py
 
-(and leave it running)
+## Como Executar o Sistema
 
-### Then run the client on the other machine
+Siga estes passos para testar a aplicação.
 
-    python3 client.py
+**1. Configurar a Conexão**
 
-### Now add other remote procedures to the server and change the client to test them
+Edite o arquivo `constRPYC.py`. Para testar em sua máquina local, a configuração deve ser:
 
-You may add the same remote procedures that you added in the sockets activity.
+```python
+SERVER = "localhost"
+PORT   = 5002
+```
+*Observação: Se estiver executando em máquinas diferentes (ex: instâncias AWS), substitua `"localhost"` pelo endereço IP privado da máquina servidora e certifique-se de que a `PORT` está liberada no firewall (Security Group).*
+
+**2. Iniciar o Servidor**
+
+Abra um terminal, navegue até a pasta do projeto e execute:
+
+```bash
+python3 server.py
+```
+O servidor será iniciado e ficará aguardando por conexões de clientes.
+
+**3. Executar o Cliente**
+
+Abra um **segundo terminal** e, na mesma pasta, execute o script do cliente:
+
+```bash
+python3 client.py
+```
+
+O cliente se conectará ao servidor e executará uma sequência de testes, demonstrando cada uma das funções remotas implementadas. Você verá a saída detalhada das operações no terminal do cliente e os logs de atividade no terminal do servidor.
+
+## Conceito Chave: Sockets vs. RPyC
+
+Este projeto destaca a principal vantagem do RPC sobre a programação direta com sockets: a **transparência**.
+
+*   **Com Sockets**: Você é responsável por serializar dados (ex: com `pickle`), definir um protocolo de mensagens (ex: dicionários com chaves "OP" e "V1"), e escrever um bloco `if/elif` no servidor para rotear os comandos.
+*   **Com RPyC**: A chamada `conn.root.exposed_sort()` no cliente invoca diretamente o método `exposed_sort` no servidor. A serialização de argumentos, a invocação da função e o retorno do resultado são tratados de forma automática e transparente pela biblioteca, resultando em um código muito mais limpo e focado na lógica da aplicação.````
